@@ -1,52 +1,22 @@
 /*
- * Motor_Driver_Code.c
+ * pwm.c
  *
- * Created: 6/19/2015 10:11:52 PM
- *  Author: Kevin Mak
+ * Created: 2015-07-05 5:39:37 PM
+ *  Author: David
  */ 
 
-/*
-	IN1	|	IN2	|	Operation
-	-------------------------
-	L	|	L	|	CW
-	-------------------------
-	L	|	H	|	CCW
-	-------------------------
-	H	|	L	|	Brake
-*/
-
-
-//Equation for waveform frequency
-
-/*
-	[F(OCnx)] = [F(clk_I/O)] / [2*N*(1+OCRnx)]        We Chose N = 256
-*/
 #define F_CPU 14745600UL
+#include <util/delay.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <util/delay.h>
-
-void motor_BRAKE();
-void motor_FWD();
-void motor_BWD();
-void motor_R_TURN();
-void motor_L_TURN();
-
-void motorL_CW();
-void motorR_CW();
-
-void motorL_CCW();
-void motorR_CCW();
-
-void _pwm_init();
-
 
 static int uart_putchar(char c, FILE *stream);
 static int uart_getchar(FILE *stream);
 FILE mystdout = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE);
 FILE mystdin = FDEV_SETUP_STREAM(NULL, uart_getchar, _FDEV_SETUP_READ);
+
 static int uart_putchar(char c, FILE *stream)
 {
 	loop_until_bit_is_set(UCSR0A, UDRE0);
@@ -66,148 +36,190 @@ void init_uart(void)
 	stdin = &mystdin;
 }
 
-/*ISR(TIMER0_COMPA_vect){
-	
-	TCNT0 = 0;
-	
-}*/
- 
- 
-//MAIN CODE 
+void _pwm_init(void);
+
+void _pwm_fwd(int speed);
+void _pwm_rvs(int speed);
+
+void _pwm_brake(void);
+
+void _pwm_LEFT_90(int speed);
+void _pwm_RIGHT_90(int speed);
+
+void R_BRAKE(void);
+void L_BRAKE(void);
+
+void R_MOTOR_CW(int speed);
+void L_MOTOR_CW(int speed);
+
+void R_MOTOR_CCW(int speed);
+void L_MOTOR_CCW(int speed);
+
+
+#define _FAST 200
+#define _NORMAL 128
+#define _SLOW 64
+
 int main(void)
 {
-	
 	init_uart();
-	//prinf_P(PSTR("System Booted, built %s on %s\n"), __TIME__, __DATE__);
-
-	//PORTD is all inputs, pull-ups enabled
-	DDRD = 0;								// enabling port d for inputs
-	PORTD = 0xFF;							//pull-ups enabled i.e. they are all 1 and will stay as so until a external force makes it zero (connect to ground)
+	printf(("System Booted, built %s on %s\n"), __TIME__, __DATE__);
+	_delay_ms(3000);
+	int speed = 128;
+	_delay_ms(3000);
+	_pwm_init();
+	//_delay_ms(5000);
 	
-	//PORTB outputs
-	DDRB |=  _BV(1) | _BV(2) | _BV(3) | _BV(4);				
-		
-	//Initial PWM
-	//_pwm_init();
-	//_delay_ms(2000);
+	//RIGHT MOTOR TEST
+	/*R_BRAKE();
+	_delay_ms(3000);
 	
-	//Robot Forward
-	motor_FWD();	
-	_delay_ms(2000);
+	R_MOTOR_CW(speed);
+	_delay_ms(3000);
+	
+	R_BRAKE();
+	_delay_ms(3000);
+	
+	R_MOTOR_CCW(speed);
+	_delay_ms(3000);
+	
+	R_BRAKE();
+	_delay_ms(3000);*/
+	
+	//LEFT MOTOR TEST
+	L_BRAKE();
+	_delay_ms(3000);
+	
+	L_MOTOR_CW(speed);
+	_delay_ms(3000);
+	
+	L_BRAKE();
+	_delay_ms(3000);
+	
+	L_MOTOR_CCW(speed);
+	_delay_ms(3000);
+	
+	L_BRAKE();
+	_delay_ms(3000);
 	
 	
-	PORTB = 0x00;
-	//Robot Backwards
-	motor_BWD();
-	_delay_ms(2000);
-	printf("motor read \n");
-	//motor_BRAKE();
-	//_delay_ms(500);
+	
+	//BRAKE
+	/*//setting pb1 and 2 HIGH
+	OCR0A = 0;
+	OCR0B = 0;
+	PORTB |=(1<<PB2);								// PB2	RIGHT (speed)						
+	PORTB |=(1<<PB1);								// PB1	LEFT (speed)
+	_delay_ms(5000);*/
+	//RIGHT MOTOR CCW
+	/*OCR0A = 128;									// PB3	RIGHT (speed)
+	OCR0B = 128;									// PB4	LEFT(speed)
+	//seting pb1 and 2 LOW
+	PORTB &= ~(1<<PB2);									// PB3
+	PORTB &= ~(1<<PB1);
+	_delay_ms(10000);*/									
+	//BRAKE
+	/*//_delay_ms(5000);
+	OCR0A = 0;											// PB3	RIGHT (speed)
+	//OCR0B = 0;											// PB4	Left (speed)
+	PORTB |=(1<<PB2);
+	//PORTB |=(1<<PB1);
+	//_delay_ms(5000);*/
+	
+	while(1);
 }
 
-//PWM SQUARE WAVE to port B pin 3,4
-/*void _pwm_init()
-{	
-	DDRB |= _BV(3) | _BV(4);							//BRAKE INITIALLY 00011000
-	OCR0A = 128;
-	OCR0B = 128;
-	
-	TCCR0A |= _BV(COM0A1) | _BV(COM0A0) | _BV(WGM00) | _BV(COM0B1) | _BV(COM0B0);	
-	TCCR0B = 1<<CS00;
-}*/
-
-//BRAKE
-void motor_BRAKE()
+void _pwm_init(void)
 {
-	PORTB &= (~(_BV(1) | _BV(2)));
-	PORTB ^= (_BV(3) | _BV(4));
+	//setting PORTB as output
+	//DDRB |= (_BV(PB2) | _BV(PB3));					//RIGHT MOTOR	
+	DDRB |= (_BV(PB1) | _BV(PB4));					//LEFT MOTOR							
 	
-	//PORTB &= (~(_BV(0) | _BV(2)));
-	//PORTB ^= (_BV(1) | _BV(3));	
+	//_BV(PB1| _BV(PB4));												
+	//DDRB |=_BV(PB1)|_BV(PB2);												
+	
+	PORTB = 0xFF;															//initialized PORTB all zeros		//don't you mean 1's?
+	
+	//set duty cycle
+	OCR0A = 128;										// PB3	RIGHT												
+	//OCR0B = 128;										// PB4	LEFT
+	
+	TCCR0A |= _BV(COM0A1)|_BV(COM0A0)| _BV(WGM00) |_BV(COM0B1)|_BV(COM0B0);	//phase correct pwm; inverting
+    TCCR0B = 1<<CS01;														//pre-scaler of 8 
 }
 
-//FORWARDS
-void motor_FWD()
+void _pwm_fwd(int speed)
 {
-	motor_BRAKE();
-	_delay_ms(2000);
-	
-	motorL_CW();
-	motorR_CW();
-	//PORTB ^= (_BV(0) | _BV(1) | _BV(2) | _BV(3));
+	//set duty cycle
+	OCR0A = speed;										// PB3	RIGHT																						
+	OCR0B = speed;										// PB4	LEFT	
+	PORTB |=(_BV(PB2));
+	PORTB |=(_BV(PB1));
 }
-
-//BACKWARDS
-void motor_BWD()
-{	
-	
-	motor_BRAKE();
-	_delay_ms(2000);
-	
-	motorR_CCW();
-	motorL_CCW();
-		
-	//PORTB ^= (_BV(0) | _BV(2));
-	//PORTB &= (~(_BV(1) | _BV(3)));
-}
-
-//LEFT TURN
-/*void motor_L_TURN()
+void _pwm_rvs(int speed)
 {
-	motor_BRAKE();
-	_delay_ms(500);
+	//set duty cycle
+	OCR0A = speed;										// PB3	RIGHT												
+	OCR0B = speed;										// PB4	RIGHT
+	PORTB &= ~(1<<PB2);
+	PORTB &= ~(1<<PB1);
+}
+
+void _pwm_brake(void)
+{
+	//set duty cycle
+	OCR0A = 0;															
+	OCR0B = 0;
+	PORTB |=(1<<PB2);
+	PORTB |=(1<<PB1);
+}
+
+void _pwm_LEFT_90(int speed)
+{
+	//set duty cycle
+	OCR0A = 0;
+	OCR0B = speed;
+	PORTB |= (1<<PB2);
+	PORTB |= (1<<PB1);
+}
+void _pwm_RIGHT_90(int speed)
+{
+	//set duty cycle
+	OCR0B = 0;
+	OCR0A  = speed;
+	PORTB |= (1<<PB2);
+	PORTB |= (1<<PB1);
+}
+
+void R_BRAKE()
+{
+	OCR0A = 0;
+	PORTB |=(1<<PB2);								// PB2	RIGHT (speed)	
+}
+void R_MOTOR_CW(int speed)
+{
+	OCR0A = speed;									//PWM
+	PORTB |=(1<<PB2);
+}
+void R_MOTOR_CCW(int speed)
+{
+	OCR0A = speed;									//PWM
+	PORTB &= ~(1<<PB2);
+}
+
+void L_BRAKE()
+{
+	OCR0B = 0;
+	PORTB |=(1<<PB1);
+}
+void L_MOTOR_CW(int speed)
+{
+	OCR0B = speed;
+	PORTB |= (1<<PB1);
+}
+void L_MOTOR_CCW(int speed)
+{
+	OCR0B = speed;	
+	PORTB &= ~(1<<PB1);
+}
 	
-	motorR_CW();
-	motorL_CCW();
-}*/
-//RIGHT TURN
-/*void motor_R_TURN()
-{	
-	motor_BRAKE();
-	_delay_ms(500);
-	motorR_CCW();
-	motorL_CW();
-}*/
-//LEFT MOTOR CW
- void motorL_CW()
- {
-	 PORTB ^= (_BV(2));
- }
-//RIGHT MOTOR CW
-void motorR_CW()
- {
-	 PORTB ^= (_BV(1));
- }
- 
-//LEFT MOTOR CCW
-void motorL_CCW()
- {
-	 
-	 PORTB ^= (_BV(4) | _BV(2));
- }
-//RIGHT MOTOR CCW 
-void motorR_CCW()
- {
-	 
-	 PORTB ^= (_BV(3) | _BV(1));
- }
- 
-/*if ((PIND & (_BV(0)|_BV(1))) == 0){
-	PORTB ^= (_BV(0) | _BV(1) | _BV(2) | _BV(3));			//CW				Xor port B (toggles output)
-	//explicitly turn off BV0
-	//PORTB ^= _BV(1);
-	}else if (((PIND & _BV(0)) == 1) && (PIND & _BV(1) == 0)){							//CCW
-	
-	PORTB ^= (_BV(0) | _BV(2));
-	PORTB &= (~(_BV(1) | _BV(3)));
-	
-	}else if (((PIND & _BV(1)) == 1) && (PIND & _BV(0) == 0)){							//BRAKE				turn on BV1 and BV3
-	
-	PORTB &= (~(_BV(0) | _BV(2)));
-	PORTB ^= (_BV(1) | _BV(3));
-	
-	}else if ((PIND & (_BV(0)|_BV(1))) == 1){					// if open then BRAKE
-	
-	PORTB ^= (_BV(0) | _BV(2));
-	PORTB &= (~(_BV(1) | _BV(3)));
-}*/
