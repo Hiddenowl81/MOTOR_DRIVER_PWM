@@ -2,7 +2,7 @@
  * pwm.c
  *
  * Created: 2015-07-05 5:39:37 PM
- *  Author: David
+ *  Author: KDOGE AND GEORGE
  */ 
 
 #define F_CPU 14745600UL
