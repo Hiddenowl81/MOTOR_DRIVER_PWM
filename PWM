@@ -35,9 +35,8 @@
 #include <avr/interrupt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "MOTOR DRIVER WITH PWM.h"
-#include "encoderlib.h"
-/*static int uart_putchar(char c, FILE *stream);
+
+static int uart_putchar(char c, FILE *stream);
 static int uart_getchar(FILE *stream);
 FILE mystdout = FDEV_SETUP_STREAM(uart_putchar, NULL, _FDEV_SETUP_WRITE);
 FILE mystdin = FDEV_SETUP_STREAM(NULL, uart_getchar, _FDEV_SETUP_READ);
@@ -50,7 +49,7 @@ static int uart_putchar(char c, FILE *stream)
 }
 static int uart_getchar(FILE *stream)
 {
-	loop_until_bit_is_set(UCSR0A, RXC0); // Wait until data exists. 
+	loop_until_bit_is_set(UCSR0A, RXC0); /* Wait until data exists. */
 	return UDR0;
 }
 void init_uart(void)
@@ -59,7 +58,7 @@ void init_uart(void)
 	UBRR0 = 7;
 	stdout = &mystdout;
 	stdin = &mystdin;
-}*/
+}
 
 void pwm_init(void);
 
@@ -100,7 +99,7 @@ void pwm_init(void)
 	PORTD = 0xFF;
 	//set duty cycle
 	OCR2A = 128;										// PB3	RIGHT												
-	OCR2B = 128;										// PB4	LEFT
+	OCR2B = 129;										// PB4	LEFT
 	
 	TCCR2A |= _BV(COM2A0)|_BV(COM2A1)| _BV(WGM20) |_BV(COM2B1)|_BV(COM2B0);	//phase correct pwm; inverting
     TCCR2B = 1<<CS21;														//pre-scaler of 8 
@@ -109,17 +108,10 @@ void pwm_init(void)
 void pwm_FWD()
 {
 	//set duty cycle
-	OCR2A = 110;										// PB3	RIGHT																						
-	OCR2B = 110;										// PB4	LEFT
-	_delay_ms(3000);	
-	OCR2A = 80;										// PB3	RIGHT
-	OCR2B = 80;										// PB4	LEFT
-	_delay_ms(3000);
-	OCR2A = 60;										// PB3	RIGHT
-	OCR2B = 60;										// PB4	LEFT
-	_delay_ms(3000);									
-	//OCR2A = 130;										// PB3	RIGHT
-	//OCR2B = 127;										// PB4	LEFT	
+	OCR2A = 128;										// PB3	RIGHT																						
+	OCR2B = 129;
+	OCR2A = 129;										// PB3	RIGHT
+	OCR2B = 128;										// PB4	LEFT	
 	//PORTB |=(_BV(PB2));
 	//PORTB |=(_BV(PB1));
 	PORTD |=(_BV(PB5));
@@ -193,22 +185,24 @@ void L_MOTOR_CCW(int speed)
 }
 
 //MAIN
-/*int main(void)
+int main(void)
 {
-	int speed = 200;
+	int speed = 120;
 	init_uart();
 	printf(("System Booted, built %s on %s\n"), __TIME__, __DATE__);
 	_delay_ms(3000);
 	
 	pwm_init();
+	_delay_ms(2000);
+	//pwm_FWD();
 	_delay_ms(10000);
 	pwm_BRAKE();
 	printf("Complete \n");
-	_delay_ms(2000);*/
+	_delay_ms(2000);
 	
 	
 	//RIGHT MOTOR TEST
-	/*printf("BEGIN! \n");
+	printf("BEGIN! \n");
 	R_BRAKE();
 	_delay_ms(3000);
 	
@@ -222,10 +216,10 @@ void L_MOTOR_CCW(int speed)
 	_delay_ms(3000);
 	
 	R_BRAKE();
-	_delay_ms(3000);*/
+	_delay_ms(3000);
 	
 	//LEFT MOTOR TEST
-	/*printf("BEGIN! \n");
+	printf("BEGIN! \n");
 	L_BRAKE();
 	//_delay_ms(3000);
 	
@@ -239,10 +233,10 @@ void L_MOTOR_CCW(int speed)
 	_delay_ms(3000);
 	
 	L_BRAKE();
-	_delay_ms(3000);*/
+	_delay_ms(3000);
 	
 	//FORWARD TEST
-	/*printf("BEGIN! \n");
+	printf("BEGIN! \n");
 	pwm_BRAKE();
 	printf("SLOW \n");
 	_delay_ms(3000);
@@ -259,10 +253,10 @@ void L_MOTOR_CCW(int speed)
 	pwm_FWD(speed = FAST);
 	_delay_ms(3000);
 	pwm_BRAKE();
-	_delay_ms(3000);*/
+	_delay_ms(3000);
 	
 	//BACKWARD TEST
-	/*printf("BEGIN! \n");
+	printf("BEGIN! \n");
 	printf("bRAKING \n");
 	pwm_BRAKE();
 	_delay_ms(3000);
@@ -273,7 +267,7 @@ void L_MOTOR_CCW(int speed)
 	
 	printf("BRAKE \n");
 	pwm_BRAKE();
-	_delay_ms(3000);*/
+	_delay_ms(3000);
 
 	
 	//RIGHT 90
@@ -301,5 +295,5 @@ void L_MOTOR_CCW(int speed)
 	//PORTB |=(1<<PB1);
 	//_delay_ms(5000);*/
 	
-	//while(1);
-//}
+	while(1);
+}
