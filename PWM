@@ -180,7 +180,7 @@ void L_MOTOR_CW(int speed)
 }
 void L_MOTOR_CCW(int speed)
 {
-	OCR2B = speed;	
+	OCR2B = speed;										// PB4	RIGHT
 	PORTD &= ~(1<<PB4);
 }
 
@@ -250,7 +250,7 @@ int main(void)
 	pwm_BRAKE();
 	printf("FAST \n");
 	_delay_ms(3000);
-	pwm_FWD(speed = FAST);
+	pwm_FWD(speed);
 	_delay_ms(3000);
 	pwm_BRAKE();
 	_delay_ms(3000);
@@ -262,7 +262,7 @@ int main(void)
 	_delay_ms(3000);
 	
 	printf("BACKWARD \n");
-	pwm_BWD(speed = NORMAL);
+	pwm_BWD(speed);
 	_delay_ms(3000);
 	
 	printf("BRAKE \n");
